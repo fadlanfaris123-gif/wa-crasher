@@ -10,7 +10,7 @@ android {
         minSdk = 24
         targetSdk = 34
         versionCode = 1
-        versionName = "2.4.1"
+        versionName = "1.0"
     }
     buildTypes { release { isMinifyEnabled = false } }
     compileOptions {
@@ -24,6 +24,8 @@ dependencies {
     implementation("androidx.appcompat:appcompat:1.6.1")
     implementation("com.google.android.material:material:1.11.0")
     implementation("androidx.constraintlayout:constraintlayout:2.1.4")
+    implementation("androidx.cardview:cardview:1.0.0") // TAMBAHAN
     implementation("com.squareup.okhttp3:okhttp:4.12.0")
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.7.3")
+}
 }
